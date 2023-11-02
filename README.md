@@ -1,2 +1,2 @@
-# AI_Courses_Project
+# The Pac-Man Projects
 INT3401 Major Assigment
