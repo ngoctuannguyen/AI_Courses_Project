@@ -425,8 +425,9 @@ class FoodSearchProblem:
         self.start = (startingGameState.getPacmanPosition(), startingGameState.getFood())
         self.walls = startingGameState.getWalls()
         self.startingGameState = startingGameState
-        self._expanded = 0 # DO NOT CHANGE
-        self.heuristicInfo = {} # A dictionary for the heuristic to store information
+        self._expanded = 0
+        self.heuristicInfo = {}
+        self.gameState = startingGameState
 
     def getStartState(self):
         return self.start
@@ -498,7 +499,14 @@ def foodHeuristic(state: Tuple[Tuple, List[List]], problem: FoodSearchProblem):
     """
     position, foodGrid = state
     "*** YOUR CODE HERE ***"
-    return 0
+    heur, result, new_dist = 0, 0, 0
+    for f in foodGrid.asList():
+        new_dist = mazeDistance(state[0], f, problem.gameState)
+
+        if new_dist > result:
+            result = new_dist
+
+    return result
 
 class ClosestDotSearchAgent(SearchAgent):
     "Search for all food using a sequence of searches"
