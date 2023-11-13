@@ -50,6 +50,15 @@ def sentence1() -> Expr:
     (not A) or (not B) or C
     """
     "*** BEGIN YOUR CODE HERE ***"
+    A = logic.Expr('A')
+    B = logic.Expr('B')
+    C = logic.Expr('C')
+    aOrB = A | B
+    notAIffNotBOrC = ~A % logic.disjoin(~B, C)
+    notAOrNotBOrC = logic.disjoin(~A, ~B, C)
+    finalExpression = logic.conjoin(aOrB, notAIffNotBOrC, notAOrNotBOrC)
+    return finalExpression
+    
     util.raiseNotDefined()
     "*** END YOUR CODE HERE ***"
 
@@ -63,6 +72,16 @@ def sentence2() -> Expr:
     (not D) implies C
     """
     "*** BEGIN YOUR CODE HERE ***"
+    A = logic.Expr('A')
+    B = logic.Expr('B')
+    C = logic.Expr('C')
+    D = logic.Expr('D')
+    cIffBOrD = C % logic.disjoin(B, D)
+    ifAThenNotBandNotD = A >> logic.conjoin(~B, ~D)
+    ifNotBAndNotCThenA = ~logic.conjoin(B, ~C) >> A
+    ifNotDThenC = ~D >> C
+    finalExpression = logic.conjoin(cIffBOrD, ifAThenNotBandNotD, ifNotBAndNotCThenA, ifNotDThenC)
+    return finalExpression
     util.raiseNotDefined()
     "*** END YOUR CODE HERE ***"
 
@@ -80,6 +99,15 @@ def sentence3() -> Expr:
     Pacman is born at time 0.
     """
     "*** BEGIN YOUR CODE HERE ***"
+    AliveAtTime1 = logic.PropSymbolExpr('PacmanAlive_1')
+    AliveAtTime0 = logic.PropSymbolExpr('PacmanAlive_0')
+    PacmanBorn_0 = logic.PropSymbolExpr('PacmanBorn_0')
+    PacmanKilled_0 = logic.PropSymbolExpr('PacmanKilled_0')
+    expr1 =AliveAtTime1 % logic.disjoin(logic.conjoin(AliveAtTime0, ~PacmanKilled_0), logic.conjoin(~AliveAtTime0, PacmanBorn_0))
+    expr2 = ~logic.conjoin(AliveAtTime0, PacmanBorn_0)
+    expr3 = PacmanBorn_0
+    finalExpression = logic.conjoin(expr1, expr2, expr3)
+    return finalExpression
     util.raiseNotDefined()
     "*** END YOUR CODE HERE ***"
 
@@ -87,8 +115,9 @@ def findModel(sentence: Expr) -> Dict[Expr, bool]:
     """Given a propositional logic sentence (i.e. a Expr instance), returns a satisfying
     model if one exists. Otherwise, returns False.
     """
-    cnf_sentence = to_cnf(sentence)
-    return pycoSAT(cnf_sentence)
+    cnf = logic.to_cnf(sentence)
+    sol = logic.pycoSAT(cnf)
+    return sol
 
 def findModelUnderstandingCheck() -> Dict[Expr, bool]:
     """Returns the result of findModel(Expr('a')) if lower cased expressions were allowed.
