@@ -219,7 +219,6 @@ def exactlyOne(literals: List[Expr]) -> Expr:
 
 #______________________________________________________________________________
 # QUESTION 3
-
 def pacmanSuccessorAxiomSingle(x: int, y: int, time: int, walls_grid: List[List[bool]]=None) -> Expr:
     """
     Successor state axiom for state (x,y,t) (from t-1), given the board (as a 
@@ -247,6 +246,8 @@ def pacmanSuccessorAxiomSingle(x: int, y: int, time: int, walls_grid: List[List[
         return None
     
     "*** BEGIN YOUR CODE HERE ***"
+    return PropSymbolExpr(pacman_str, x, y, time=now) % logic.disjoin(possible_causes)
+
     util.raiseNotDefined()
     "*** END YOUR CODE HERE ***"
 
@@ -318,7 +319,25 @@ def pacphysicsAxioms(t: int, all_coords: List[Tuple], non_outer_wall_coords: Lis
     pacphysics_sentences = []
 
     "*** BEGIN YOUR CODE HERE ***"
+    for coordinate in all_coords:
+        pacphysics_sentences.append(logic.PropSymbolExpr(wall_str, coordinate[0], coordinate[1]) >> 
+                                    ~logic.PropSymbolExpr(pacman_str, coordinate[0], coordinate[1], time = t))
+    
+    wall_list = [logic.PropSymbolExpr(pacman_str, wall_coordinate[0], wall_coordinate[1], time = t) for wall_coordinate in non_outer_wall_coords]
+    pacphysics_sentences.append(exactlyOne(wall_list))
+    
+    dir_list = exactlyOne([logic.PropSymbolExpr(direction, time = t) for direction in DIRECTIONS])
+    pacphysics_sentences.append(dir_list)
+    
+    if (sensorModel): pacphysics_sentences.append(sensorModel(t, non_outer_wall_coords))
+    
+    if (successorAxioms and walls_grid and t):
+        pacphysics_sentences.append(successorAxioms(t, walls_grid, non_outer_wall_coords))
+    
+    return logic.conjoin(pacphysics_sentences)
+
     util.raiseNotDefined()
+    
     "*** END YOUR CODE HERE ***"
 
     return conjoin(pacphysics_sentences)
@@ -352,9 +371,18 @@ def checkLocationSatisfiability(x1_y1: Tuple[int, int], x0_y0: Tuple[int, int], 
     KB.append(conjoin(map_sent))
 
     "*** BEGIN YOUR CODE HERE ***"
+    
+    for i in range(0, 2):
+        KB.append(pacphysicsAxioms(i, all_coords, non_outer_wall_coords, walls_grid, None, allLegalSuccessorAxioms))
+
+    KB.append(logic.PropSymbolExpr(pacman_str, x0, y0, time = 0))
+    KB.append(logic.PropSymbolExpr(action1, time = 1))
+    KB.append(logic.PropSymbolExpr(action0, time = 0))
+    
+    return (findModel(logic.conjoin(KB) & logic.PropSymbolExpr(pacman_str, x1, y1, time = 1)), 
+            findModel(logic.conjoin(KB) & ~logic.PropSymbolExpr(pacman_str, x1, y1, time = 1)))
     util.raiseNotDefined()
     "*** END YOUR CODE HERE ***"
-
 #______________________________________________________________________________
 # QUESTION 4
 
@@ -365,20 +393,34 @@ def positionLogicPlan(problem) -> List:
     Note that STOP is not an available action.
     Overview: add knowledge incrementally, and query for a model each timestep. Do NOT use pacphysicsAxioms.
     """
+    "*** BEGIN YOUR CODE HERE ***"
     walls_grid = problem.walls
     width, height = problem.getWidth(), problem.getHeight()
     walls_list = walls_grid.asList()
     x0, y0 = problem.startState
     xg, yg = problem.goal
-    
-    # Get lists of possible locations (i.e. without walls) and possible actions
     all_coords = list(itertools.product(range(width + 2), 
             range(height + 2)))
     non_wall_coords = [loc for loc in all_coords if loc not in walls_list]
     actions = [ 'North', 'South', 'East', 'West' ]
     KB = []
-
-    "*** BEGIN YOUR CODE HERE ***"
+    KB.append(logic.PropSymbolExpr(pacman_str, x0, y0, time = 0))
+    
+    for t in range(50):
+       
+        print(f"Time step = {t}")
+    
+        pacman_locations = exactlyOne([logic.PropSymbolExpr(pacman_str, wall_coord[0], wall_coord[1], time = t) for wall_coord in non_wall_coords])
+        KB.append(pacman_locations) 
+        goal_state = logic.PropSymbolExpr(pacman_str, xg, yg, time = t)
+        model = findModel(goal_state & logic.conjoin(KB))
+        if (model):
+            return extractActionSequence(model, actions)
+        possible_actions = exactlyOne([logic.PropSymbolExpr(action, time = t) for action in actions])
+        KB.append(possible_actions)
+        
+        for wall_coord in non_wall_coords: KB.append(pacmanSuccessorAxiomSingle(wall_coord[0], wall_coord[1], t+1, walls_grid))
+    return None
     util.raiseNotDefined()
     "*** END YOUR CODE HERE ***"
 
