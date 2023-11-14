@@ -123,11 +123,11 @@ def findModelUnderstandingCheck() -> Dict[Expr, bool]:
     """Returns the result of findModel(Expr('a')) if lower cased expressions were allowed.
     You should not use findModel or Expr in this method.
     """
+    "*** BEGIN YOUR CODE HERE ***"
     a = Expr('A')
-    a.__dict__['op'] = 'a' # TODO is this the right way? 
+    a.__dict__['op'] = 'a'  
     return {a: True}
     
-    "*** BEGIN YOUR CODE HERE ***"
     print("a.__dict__ is:", a.__dict__) # might be helpful for getting ideas
     util.raiseNotDefined()
     "*** END YOUR CODE HERE ***"
@@ -179,6 +179,7 @@ def atLeastOne(literals: List[Expr]) -> Expr:
     True
     """
     "*** BEGIN YOUR CODE HERE ***"
+    return logic.disjoin(literals)
     util.raiseNotDefined()
     "*** END YOUR CODE HERE ***"
 
@@ -191,6 +192,14 @@ def atMostOne(literals: List[Expr]) -> Expr:
     itertools.combinations may be useful here.
     """
     "*** BEGIN YOUR CODE HERE ***"
+    conjunction = list()
+    n = len(literals)
+    
+    for i in range(0, n):
+        for j in range(i+1, n): 
+            conjunction.append(logic.disjoin(~literals[i], ~literals[j]))
+    
+    return logic.conjoin(conjunction)
     util.raiseNotDefined()
     "*** END YOUR CODE HERE ***"
 
@@ -202,6 +211,9 @@ def exactlyOne(literals: List[Expr]) -> Expr:
     the expressions in the list is true.
     """
     "*** BEGIN YOUR CODE HERE ***"
+    at_least_once = atLeastOne(literals)
+    at_most_once = atMostOne(literals)
+    return logic.conjoin(at_least_once, at_most_once)
     util.raiseNotDefined()
     "*** END YOUR CODE HERE ***"
 
