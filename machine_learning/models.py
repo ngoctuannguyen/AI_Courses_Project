@@ -12,6 +12,7 @@ class PerceptronModel(object):
         2D points.
         """
         self.w = nn.Parameter(1, dimensions)
+        self.batch_size = 1
 
     def get_weights(self):
         """
@@ -28,7 +29,7 @@ class PerceptronModel(object):
         Returns: a node containing a single number (the score)
         """
         "*** YOUR CODE HERE ***"
-        return nn.DotProduct(self.w, x)
+        return nn.DotProduct(self.w, x) # nhân vô hướng 2 vector 
 
 
     def get_prediction(self, x):
@@ -38,27 +39,28 @@ class PerceptronModel(object):
         Returns: 1 or -1
         """
         "*** YOUR CODE HERE ***"
-        if nn.as_scalar(self.run(x)) >= 0:
-            return 1
-        else: 
-            return -1
+
+        # if nn.as_scalar(self.run(x)) >= 0:
+        #     return 1
+        # else: 
+        #     return -1
+        distance = nn.as_scalar(self.run(x))
+        return 1 if distance >= 0 else -1 # dùng toán tử 3 ngồi để flex :D
 
     def train(self, dataset):
         """
         Train the perceptron until convergence.
         """
         "*** YOUR CODE HERE ***"
-        while 1 + 1 == 2:
+        mistake = True # đặt flag
+        while mistake:
             mistake = False
-            for x, y in dataset.iterate_once(1):
-                pred = self.get_prediction(x)
-                if pred != nn.as_scalar(y): 
+            for x, y in dataset.iterate_once(self.batch_size):
+                pred = self.get_prediction(x) # dự đoán từ model
+                if pred != nn.as_scalar(y): # nếu chưa đúng thì train tiếp 
                     mistake = True
-                    self.w.update(x, nn.as_scalar(y)) 
-            if not mistake:
-                break
-
-
+                    self.w.update(x, nn.as_scalar(y)) # update thông qua gradient descent
+ 
 class RegressionModel(object):
     """
     A neural network model for approximating a function that maps from real
@@ -68,8 +70,8 @@ class RegressionModel(object):
     def __init__(self):
         # Initialize your model parameters here
         "*** YOUR CODE HERE ***"
-        self.batch_size = 10
-        self.learning_rate = -0.001
+        self.batch_size = 1
+        self.learning_rate = -0.005
         self.first_weights = nn.Parameter(1, 15)
         self.fb = nn.Parameter(1, 15)
         self.second_weights = nn.Parameter(15, 10)
@@ -158,6 +160,15 @@ class DigitClassificationModel(object):
         # Initialize your model parameters here
         "*** YOUR CODE HERE ***"
 
+        # all setting theo hướng dẫn web
+        self.w0 = nn.Parameter(784, 100)
+        self.b0 = nn.Parameter(1, 100)
+        self.w1 = nn.Parameter(100, 10)
+        self.b1 = nn.Parameter(1, 10)
+        self.batch_size = 100
+        self.lr = 0.5
+
+
     def run(self, x):
         """
         Runs the model for a batch of examples.
@@ -173,6 +184,8 @@ class DigitClassificationModel(object):
                 (also called logits)
         """
         "*** YOUR CODE HERE ***"
+        rl = nn.ReLU(nn.AddBias(nn.Linear(x, self.w0), self.b0))
+        return nn.AddBias(nn.Linear(rl, self.w1), self.b1)
 
     def get_loss(self, x, y):
         """
@@ -195,6 +208,16 @@ class DigitClassificationModel(object):
         Trains the model.
         """
         "*** YOUR CODE HERE ***"
+        while True:
+            for x, y in dataset.iterate_once(self.batch_size):
+                loss = self.get_loss(x, y)
+                grad = nn.gradients(loss, [self.w0, self.b0, self.w1, self.b1])
+                self.w0.update(grad[0], -self.lr)
+                self.b0.update(grad[1], -self.lr)
+                self.w1.update(grad[2], -self.lr)
+                self.b1.update(grad[3], -self.lr)
+            if dataset.get_validation_accuracy() > 0.97:
+                break
 
 class LanguageIDModel(object):
     """
@@ -214,6 +237,15 @@ class LanguageIDModel(object):
 
         # Initialize your model parameters here
         "*** YOUR CODE HERE ***"
+        self.w0 = nn.Parameter(self.num_chars, 128)
+        self.w = nn.Parameter(128, 128)
+        self.w1 = nn.Parameter(128, 128)
+        self.w2 = nn.Parameter(128, len(self.languages))
+        self.b0 = nn.Parameter(1, 128)
+        self.b1 = nn.Parameter(1, 128)
+        self.b2 = nn.Parameter(1, len(self.languages))
+        self.lr = 0.02
+        self.batch_size = 256
 
     def run(self, xs):
         """
@@ -246,6 +278,13 @@ class LanguageIDModel(object):
         """
         "*** YOUR CODE HERE ***"
 
+        # khởi tạo
+        h = nn.ReLU(nn.AddBias(nn.Linear(xs[0], self.w0), self.b0))
+        for i in range(1, len(xs)): # lặp từ i = 1 vì i = 0 là bước khởi tạo
+            h = nn.ReLU(nn.Add(nn.AddBias(nn.Linear(xs[i], self.w0), self.b0), nn.Linear(h, self.w)))
+        rl = nn.ReLU(nn.AddBias(nn.Linear(h, self.w1), self.b1))
+        return nn.AddBias(nn.Linear(rl, self.w2), self.b2)  
+
     def get_loss(self, xs, y):
         """
         Computes the loss for a batch of examples.
@@ -261,11 +300,24 @@ class LanguageIDModel(object):
         Returns: a loss node
         """
         "*** YOUR CODE HERE ***"
+        return nn.SoftmaxLoss(self.run(xs), y)
+        
 
     def train(self, dataset):
         """
         Trains the model.
         """
         "*** YOUR CODE HERE ***"
-        
-        
+        while True:
+            for x, y in dataset.iterate_once(self.batch_size):
+                loss = self.get_loss(x, y)
+                grad = nn.gradients(loss, [self.w0, self.w, self.w1, self.w2, self.b0, self.b1, self.b2])
+                self.w0.update(grad[0], -self.lr)
+                self.w.update(grad[1], -self.lr)
+                self.w1.update(grad[2], -self.lr)
+                self.w2.update(grad[3], -self.lr)
+                self.b0.update(grad[4], -self.lr)
+                self.b1.update(grad[5], -self.lr)
+                self.b2.update(grad[6], -self.lr)
+            if dataset.get_validation_accuracy() > 0.86:
+                break
