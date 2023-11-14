@@ -124,6 +124,9 @@ def findModelUnderstandingCheck() -> Dict[Expr, bool]:
     You should not use findModel or Expr in this method.
     """
     a = Expr('A')
+    a.__dict__['op'] = 'a' # TODO is this the right way? 
+    return {a: True}
+    
     "*** BEGIN YOUR CODE HERE ***"
     print("a.__dict__ is:", a.__dict__) # might be helpful for getting ideas
     util.raiseNotDefined()
@@ -133,6 +136,13 @@ def entails(premise: Expr, conclusion: Expr) -> bool:
     """Returns True if the premise entails the conclusion and False otherwise.
     """
     "*** BEGIN YOUR CODE HERE ***"
+    concat = ~conclusion & premise
+    
+    if (findModel(concat) == False):
+        return True
+    else:
+        return False
+    
     util.raiseNotDefined()
     "*** END YOUR CODE HERE ***"
 
@@ -141,6 +151,8 @@ def plTrueInverse(assignments: Dict[Expr, bool], inverse_statement: Expr) -> boo
     pl_true may be useful here; see logic.py for its description.
     """
     "*** BEGIN YOUR CODE HERE ***"
+    model = findModel(~inverse_statement) 
+    return assignments == model  
     util.raiseNotDefined()
     "*** END YOUR CODE HERE ***"
 
