@@ -444,12 +444,44 @@ def foodLogicPlan(problem) -> List:
     # Get lists of possible locations (i.e. without walls) and possible actions
     all_coords = list(itertools.product(range(width + 2), range(height + 2)))
 
-    non_wall_coords = [loc for loc in all_coords if loc not in walls_list]
+    possible_coords = [loc for loc in all_coords if loc not in walls_list]
     actions = [ 'North', 'South', 'East', 'West' ]
 
     KB = []
-
+    
     "*** BEGIN YOUR CODE HERE ***"
+    
+    KB.append(PropSymbolExpr(pacman_str, x0, y0, time=0)) 
+
+    # add food intial location to KB 
+    KB += KB + [PropSymbolExpr(food_str, coord[0], coord[1], time=0) for coord in food] 
+
+    for t in range(50): 
+
+
+        possible_locations = [PropSymbolExpr(pacman_str, coord[0], coord[1], time=t) for coord in possible_coords] 
+        location_clause = exactlyOne(possible_locations) 
+        KB.append(location_clause) 
+
+        # pacman takes exactly one action per timestep t 
+        possible_actions = [PropSymbolExpr(action, time=t) for action in actions] 
+        action_clause = exactlyOne(possible_actions) 
+        KB.append(action_clause) 
+
+        if (t > 0): 
+            new_state = [pacmanSuccessorAxiomSingle(coord[0], coord[1], t, walls) for coord in possible_coords] 
+            KB += new_state
+
+        for coord in food: 
+            x, y = coord 
+            pacman_t = PropSymbolExpr(pacman_str, x, y, time=t) 
+            KB.append(PropSymbolExpr(food_str, x, y, time=t+1) % conjoin([~pacman_t, PropSymbolExpr(food_str, x, y, time=t)])) 
+
+        goal_assert = conjoin([~PropSymbolExpr(food_str, coord[0], coord[1], time=t+1) for coord in food]) 
+        model = findModel(conjoin(KB + [goal_assert])) 
+        if model:
+            return extractActionSequence(model, actions) 
+    
     util.raiseNotDefined()
     "*** END YOUR CODE HERE ***"
 
