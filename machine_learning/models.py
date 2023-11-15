@@ -70,14 +70,18 @@ class RegressionModel(object):
     def __init__(self):
         # Initialize your model parameters here
         "*** YOUR CODE HERE ***"
-        self.batch_size = 1
-        self.learning_rate = -0.005
-        self.first_weights = nn.Parameter(1, 15)
-        self.fb = nn.Parameter(1, 15)
-        self.second_weights = nn.Parameter(15, 10)
-        self.sb = nn.Parameter(1, 10)
-        self.tw = nn.Parameter(10, 1)
+        self.batch_size = 200
+        self.learning_rate = 0.05
+        self.hidden_layer = 512
+        self.first_weights = nn.Parameter(1, self.batch_size)
+        self.fb = nn.Parameter(1, self.batch_size)
+        self.second_weights = nn.Parameter(self.batch_size, self.hidden_layer)
+        self.sb = nn.Parameter(1, self.hidden_layer)
+        self.third_weights = nn.Parameter(self.hidden_layer, 1)
         self.tb = nn.Parameter(1, 1)
+        # self.forth_weights = nn.Parameter(self.batch_size, 1)
+        # self.fob = nn.Parameter(1, 1)
+       
 
     def run(self, x):
         """
@@ -91,7 +95,8 @@ class RegressionModel(object):
         "*** YOUR CODE HERE ***"
         fi = nn.AddBias(nn.Linear(x, self.first_weights), self.fb)
         se = nn.AddBias(nn.Linear(nn.ReLU(fi), self.second_weights), self.sb)
-        thi = nn.AddBias(nn.Linear(nn.ReLU(se), self.tw), self.tb)
+        thi = nn.AddBias(nn.Linear(nn.ReLU(se), self.third_weights), self.tb)
+        # fo = nn.AddBias(nn.Linear(nn.ReLU(thi), self.forth_weights), self.fob)
         return thi
 
 
@@ -113,31 +118,25 @@ class RegressionModel(object):
         Trains the model.
         """
         "*** YOUR CODE HERE ***"
-        learning_state = True
-        loss_diff = 10000
-        last_loss = None
-        while learning_state:
-            for x, y in dataset.iterate_once(1):
+        loss = 10000
+        while nn.as_scalar(loss) > 0.02:
+            for x, y in dataset.iterate_once(self.batch_size):
                 loss = self.get_loss(x, y)
-                learning_state = False
-                if last_loss:
-                    loss_diff = abs(nn.as_scalar(loss)-nn.as_scalar(last_loss))
-                last_loss = loss
-                if loss_diff > 0.00001:
-                    learning_state = True
-                    grads = nn.gradients(loss, [self.first_weights, self.fb, self.second_weights, self.sb, self.tw, self.tb])
-                    # print(grads)
-                    # if os.path.exists(path):
-                    #     os.remove(path)
-                    # else: 
-                    #     with open(path, 'a') as f:
-                    #         f.write(f'{grads}')
-                    self.first_weights.update(grads[0], self.learning_rate)
-                    self.fb.update(grads[1], self.learning_rate)
-                    self.second_weights.update(grads[2], self.learning_rate)    
-                    self.sb.update(grads[3], self.learning_rate)
-                    self.tw.update(grads[4], self.learning_rate)
-                    self.tb.update(grads[5], self.learning_rate)
+                grads = nn.gradients(loss, [self.first_weights, self.fb, self.second_weights, self.sb, self.third_weights, self.tb])
+                # print(grads)
+                # if os.path.exists(path):
+                #     os.remove(path)
+                # else: 
+                #     with open(path, 'a') as f:
+                #         f.write(f'{grads}')
+                if (nn.as_scalar(loss) > 0.02):
+                    self.first_weights.update(grads[0], -self.learning_rate)
+                    self.fb.update(grads[1], -self.learning_rate)
+                    self.second_weights.update(grads[2], -self.learning_rate)    
+                    self.sb.update(grads[3], -self.learning_rate)
+                    self.third_weights.update(grads[4], -self.learning_rate)
+                    self.tb.update(grads[5], -self.learning_rate)
+                    #self.for
 
         
 
