@@ -70,14 +70,15 @@ class RegressionModel(object):
     def __init__(self):
         # Initialize your model parameters here
         "*** YOUR CODE HERE ***"
-        self.batch_size = 1
-        self.learning_rate = -0.005
-        self.first_weights = nn.Parameter(1, 15)
-        self.fb = nn.Parameter(1, 15)
-        self.second_weights = nn.Parameter(15, 10)
-        self.sb = nn.Parameter(1, 10)
-        self.tw = nn.Parameter(10, 1)
-        self.tb = nn.Parameter(1, 1)
+        self.batch_size = 200
+        self.learning_rate = 0.05
+        self.hidden_layer = 512
+        self.first_weights = nn.Parameter(1, self.hidden_layer)
+        self.fb = nn.Parameter(1, self.hidden_layer)
+        self.second_weights = nn.Parameter(self.hidden_layer, 1)
+        self.sb = nn.Parameter(1, 1)
+        # self.tw = nn.Parameter(self.hidden_layer, 1)
+        # self.tb = nn.Parameter(1, self.hidden_layer)
 
     def run(self, x):
         """
@@ -91,8 +92,8 @@ class RegressionModel(object):
         "*** YOUR CODE HERE ***"
         fi = nn.AddBias(nn.Linear(x, self.first_weights), self.fb)
         se = nn.AddBias(nn.Linear(nn.ReLU(fi), self.second_weights), self.sb)
-        thi = nn.AddBias(nn.Linear(nn.ReLU(se), self.tw), self.tb)
-        return thi
+        # thi = nn.AddBias(nn.Linear(nn.ReLU(se), self.tw), self.tb)
+        return se
 
 
     def get_loss(self, x, y):
@@ -117,27 +118,27 @@ class RegressionModel(object):
         loss_diff = 10000
         last_loss = None
         while learning_state:
-            for x, y in dataset.iterate_once(1):
+            for x, y in dataset.iterate_once(self.batch_size):
                 loss = self.get_loss(x, y)
                 learning_state = False
                 if last_loss:
                     loss_diff = abs(nn.as_scalar(loss)-nn.as_scalar(last_loss))
                 last_loss = loss
-                if loss_diff > 0.00001:
+                if loss_diff >= .02:
                     learning_state = True
-                    grads = nn.gradients(loss, [self.first_weights, self.fb, self.second_weights, self.sb, self.tw, self.tb])
+                    grads = nn.gradients(loss, [self.first_weights, self.fb, self.second_weights, self.sb])
                     # print(grads)
                     # if os.path.exists(path):
                     #     os.remove(path)
                     # else: 
                     #     with open(path, 'a') as f:
                     #         f.write(f'{grads}')
-                    self.first_weights.update(grads[0], self.learning_rate)
-                    self.fb.update(grads[1], self.learning_rate)
-                    self.second_weights.update(grads[2], self.learning_rate)    
-                    self.sb.update(grads[3], self.learning_rate)
-                    self.tw.update(grads[4], self.learning_rate)
-                    self.tb.update(grads[5], self.learning_rate)
+                    self.first_weights.update(grads[0], -self.learning_rate)
+                    self.fb.update(grads[1], -self.learning_rate)
+                    self.second_weights.update(grads[2], -self.learning_rate)    
+                    self.sb.update(grads[3], -self.learning_rate)
+                    # self.tw.update(grads[4], -self.learning_rate)
+                    # self.tb.update(grads[5], -self.learning_rate)
 
         
 
